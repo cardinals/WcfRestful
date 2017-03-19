@@ -1,0 +1,225 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <meta charset="utf-8" />
+    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <link href="http://apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.css" rel="stylesheet" />
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#btnGet').click(function () {
+                $.ajax({
+                    type: 'get',
+                    dataType: 'json',
+                    url: 'http://localhost:65416/BookService.svc/book/list',
+                    contentType: 'application/json;charest=utf-8',
+                    success: function (result) {
+                        createTable(result);
+                    }
+                });
+            });
+        });
+
+        function getInfo(id) {
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: 'http://localhost:65416/BookService.svc/book/list/' + id + '/' + 2,
+                contentType: 'application/json;charest=utf-8',
+                //data: { id: id },
+                success: function (result) {
+                    var $ul = $('#bookInfo').empty();
+                    if (typeof (result) === "object") {
+                        $ul.append($('<li class="list-group-item">ID：' + result.Id + '</li>'))
+                            .append($('<li class="list-group-item">名称：' + result.Name + '</li>'))
+                            .append($('<li class="list-group-item">价格：' + result.Price + '</li>'));
+                    }
+                }
+            });
+        }
+
+        function getById(id) {
+            $.ajax({
+                type: 'get',
+                dataType: 'json',
+                url: 'http://localhost:65416/BookService.svc/book/list/' + id,
+                contentType: 'application/json;charest=utf-8',
+                //data: { id: id },
+                success: function (result) {
+                    var $ul = $('#bookInfo').empty();
+                    if (typeof (result) === "object") {
+                        $('#Edit #Id').val(result.Id);
+                        $('#Edit #Name').val(result.Name);
+                        $('#Edit #Price').val(result.Price);
+                    }
+                }
+            });
+        }
+
+        function createTable(result) {
+            var $tbody = $('#tBody').empty();
+            if (typeof (result) === "object" && result.length > 0) {
+                $.each(result, function (index, item) {
+                    var $tr = $('<tr></tr>')
+                        .append('<td>' + item.Id + '</td>').append('<td>' + item.Name + '</td>')
+                        .append('<td>' + item.Price + '</td>').append('<td><a class="btn btn-info" href="javascript:void(0)" onclick="getInfo(' + item.Id + ')">详细</a> <a class="btn btn-warning" href="javascript:void(0)" onclick="getById(' + item.Id + ')">修改</a> <a class="btn btn-danger" href="javascript:void(0)" onclick="Delete(' + item.Id + ')">删除</a></td>');
+                    $tbody.append($tr);
+                });
+            }
+        }
+
+        function add() {
+            var name = $('#add #Name').val() || '',
+                price = $('#add #Price').val() || '';
+
+            if (name === '') {
+                $('#add .alert').removeClass('alert-success').addClass('alert-warning').html('请填写名称');
+                return;
+            }
+            if (price === '') {
+                $('#add .alert').removeClass('alert-success').addClass('alert-warning').html('请填写价格');
+                return;
+            }
+
+            $.ajax({
+                type: 'POST',
+                dataType: 'json',
+                url: 'http://localhost:65416/BookService.svc/book/add',
+                contentType: 'application/json;charest=utf-8',
+                data: JSON.stringify({ Name: name, Price: price }),
+                success: function (result) {
+                    createTable(result);
+                    $('#add .alert').removeClass('alert-warning').addClass('alert-success').html('新增成功');
+                }
+            });
+        }
+
+        function edit() {
+            var id = $('#Edit #Id').val() || '',
+                name = $('#Edit #Name').val() || '',
+                price = $('#Edit #Price').val() || '';
+
+            if (id === '') {
+                $('#Edit .alert').removeClass('alert-warning').addClass('alert-warning').html('请选择要修改的内容');
+                return;
+            }
+            if (name === '') {
+                $('#Edit .alert').removeClass('alert-warning').addClass('alert-warning').html('请填写名称');
+                return;
+            } 
+            if (price === '') {
+                $('#Edit .alert').removeClass('alert-warning').addClass('alert-warning').html('请填写价格');
+                return;
+            }
+
+            $.ajax({
+                type: 'PUT',
+                dataType: 'json',
+                url: 'http://localhost:65416/BookService.svc/book/update',
+                contentType: 'application/json;charest=utf-8',
+                data: JSON.stringify({ Id:id, Name: name, Price: price }),
+                success: function (result) {
+                    createTable(result);
+                    $('#Edit .alert').removeClass('alert-warning').addClass('alert-success').html('修改成功');
+                }
+            });
+        }
+
+        function Delete(id) {
+            $.ajax({
+                type: 'DELETE',
+                dataType: 'json',
+                url: 'http://localhost:65416/BookService.svc/book/delete/' + id,
+                //data: {id:id},
+                contentType: 'application/json;charest=utf-8',
+                success: function (result) {
+                    createTable(result);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="row" style="margin-top: 20px;">
+            <div class="col-md-12" style="margin-bottom: 5px;">
+                <button type="button" id="btnGet" class="btn btn-primary">获取列表</button>
+            </div>
+            <div class="col-md-9">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th class="col-md-1">ID</th>
+                            <th class="col-md-2">名称</th>
+                            <th class="col-md-1">价格</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tBody"></tbody>
+                </table>
+            </div>
+            <div class="col-md-3">
+                <ul id="bookInfo" class="list-group"></ul>
+            </div>
+
+            <div class="col-md-6">
+                <div class="panel panel-info">
+                    <div class="panel-heading">新增</div>
+                    <div class="panel-body">
+                        <form id="add" class="form-horizontal">
+                            <div class="alert" role="alert"></div>
+                            <div class="form-group">
+                                <label for="Name" class="col-sm-2 control-label">名称：</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="Name" name="Name" placeholder="名称"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="Price" class="col-sm-2 control-label">价格：</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="Price" name="Price" placeholder="价格"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-sm-offset-2 col-sm-10">
+                                    <button type="button" id="btnAdd" class="btn btn-info" onclick="add()">保存</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="panel panel-warning">
+                    <div class="panel-heading">修改</div>
+                    <div class="panel-body">
+                        <form id="Edit" class="form-horizontal">
+                            <div class="alert" role="alert"></div>
+                            <input type="hidden" id="Id" name="Id" value=""/>
+                            <div class="form-group">
+                                <label for="Name" class="col-sm-2 control-label">名称：</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="Name" name="Name" placeholder="名称"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="Price" class="col-sm-2 control-label">价格：</label>
+                                <div class="col-sm-10">
+                                    <input type="text" class="form-control" id="Price" name="Price" placeholder="价格"/>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-sm-offset-2 col-sm-10">
+                                    <button type="button" id="btnUpdate" class="btn btn-success" onclick="edit()">保存</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
