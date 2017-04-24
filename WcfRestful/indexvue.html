@@ -1,0 +1,247 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <meta charset="utf-8" />
+    <link href="http://apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.css" rel="stylesheet" />
+    <style type="text/css">
+        .modal {
+            display: block;
+        }
+
+        .modal-mask {
+            position: fixed;
+            z-index: 9998;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, .5);
+            display: table;
+            transition: opacity .3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row" style="margin-top: 20px;">
+            <div id="tableGrid">
+                <div class="col-md-12" style="margin-bottom: 5px;">
+                    <button type="button" class="btn btn-primary" v-on:click="getList">刷新</button>
+                    <button type="button" class="btn btn-info" v-on:click="doCreate">新增</button>
+                </div>
+                <div class="col-md-8">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th class="col-md-1" v-for="col in columns">{{ col.name }}</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="entity in data">
+                                <td>{{entity.Id}}</td>
+                                <td>{{entity.Name}}</td>
+                                <td>{{entity.Price}}</td>
+                                <td>
+                                    <button class="btn btn-primary" v-on:click="getInfoById(entity.Id)">编辑</button>
+                                    <button class="btn btn-danger" v-on:click="confirmDelete(entity.Id)">删除</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="col-md-4">
+                    <edit-panel v-show="show">
+                        <h3 class="panel-title" slot="panel-title">{{ ((item.Id || '') === '') ? '新增':'修改'}}</h3>
+                        <div class="panel-body" slot="panel-body">
+                            <form id="add" class="form-horizontal">
+                                <div class="form-group">
+                                    <label for="Name" class="col-sm-3 control-label">名称：</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="Name" name="Name" placeholder="名称" v-model="item.Name" />
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="Price" class="col-sm-3 control-label">价格：</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" id="Price" name="Price" placeholder="价格" v-model="item.Price" />
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="panel-footer text-right" slot="panel-footer">
+                            <button type="button" class="btn btn-default" v-on:click="show=false">取消</button>
+                            <button type="button" class="btn btn-primary" v-on:click="doSave">确定</button>
+                        </div>
+                    </edit-panel>
+                </div>
+
+                <modal-dialog v-show="dialogShow">
+                    <div class="modal-header" slot="modal-header">
+                        <button type="button" class="close"><span aria-hidden="true" v-on:click="dialogShow=false">&times;</span></button>
+                        <h4 class="modal-title" name="">系统提示</h4>
+                    </div>
+                    <div class="modal-body" slot="modal-body">
+                        {{ tipMessage }}
+                    </div>
+                    <div class="modal-footer" slot="modal-footer">
+                        <button type="button" class="btn btn-default" v-on:click="dialogShow=false">取消</button>
+                        <button type="button" class="btn btn-primary" v-on:click="doDelete()">确定</button>
+                    </div>
+                </modal-dialog>
+            </div>
+        </div>
+    </div>
+
+    <template id="panel-template">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <slot name="panel-title"></slot>
+            </div>
+            <slot name="panel-body"></slot>
+            <slot name="panel-footer"></slot>
+        </div>
+    </template>
+
+
+    <template id="dialog-template" v-show="dialogShow">
+        <div class="modal-mask">
+            <div class="modal fade in" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <slot name="modal-header"></slot>
+                        <slot name="modal-body"></slot>
+                        <slot name="modal-footer"></slot>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cn.vuejs.org/js/vue.js"></script>
+    <script src="http://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript">
+
+        Vue.component('edit-panel', {
+            template: '#panel-template',
+            props: ['show']
+        });
+
+        Vue.component('modal-dialog', {
+            template: '#dialog-template',
+            props: ['dialogShow', 'tipMessage']
+        });
+
+
+        var tableGrid = new Vue({
+            el: '#tableGrid',
+            data: {
+                columns: [
+                    {
+                        name: 'ID'
+                    }, {
+                        name: '名称'
+                    }, {
+                        name: '价格'
+                    }
+                ],
+                data: [],
+                item: {},
+                show: false,
+                tipMessage: '',
+                dialogShow: false,
+                deleteKey: ''
+            },
+            created: function () {
+                this.getList();
+            },
+            methods: {
+                getList: function () {
+                    var that = this;
+                    $.ajax({
+                        type: 'get',
+                        dataType: 'json',
+                        async: false,
+                        url: 'http://localhost:65416/BookService.svc/book/list',
+                        contentType: 'application/json;charest=utf-8',
+                        success: function (result) {
+                            that.data = result;
+                        }
+                    });
+                },
+                getInfoById: function (key) {
+                    var that = this;
+                    if ((key || '') === '') {
+                        that.item = {};
+                    }
+                    $.ajax({
+                        type: 'get',
+                        dataType: 'json',
+                        url: 'http://localhost:65416/BookService.svc/book/list/' + key + '/' + 2,
+                        contentType: 'application/json;charest=utf-8',
+                        success: function (result) {
+                            that.item = result;
+                            that.show = true;
+                        }
+                    });
+                },
+                doCreate: function () {
+                    this.item = {};
+                    this.show = true;
+                },
+                doSave: function () {
+                    var that = this,
+                        item = that.item,
+                        mothed = ((item.Id || '') === '') ? 'add':'update';
+                    $.ajax({
+                        type: 'Post',
+                        dataType: 'json',
+                        url: 'http://localhost:65416/BookService.svc/book/' + mothed,
+                        contentType: 'application/json;charest=utf-8',
+                        data: JSON.stringify(that.item),
+                        success: function (result) {
+                            this.show = false;
+                            that.data = result;
+                        }
+                    });
+                },
+                confirmDelete: function (key) {
+                    if ((key || '') === '') {
+                        this.tipMessage = '确定选择要删除已选择的内容？';
+                    } else {
+                        this.deleteKey = key;
+                        this.tipMessage = '请选择要删除ID =  ' + key + '的内容！';
+                    }
+                    this.dialogShow = true;
+                },
+                doDelete: function () {
+                    var that = this;
+                    $.ajax({
+                        type: 'DELETE',
+                        dataType: 'json',
+                        url: 'http://localhost:65416/BookService.svc/book/delete/' + that.deleteKey,
+                        contentType: 'application/json;charest=utf-8',
+                        success: function (result) {
+                            that.dialogShow = false;
+                            that.data = result;
+                        }
+                    });
+                }
+            }
+        });
+        tableGrid.$watch('show', function (newVal) {
+            if (!newVal) {
+                this.item = {};
+            }
+        });
+        tableGrid.$watch('showModalDialog', function (newVal) {
+            if (!newVal) {
+                this.tipMessage = '';
+            }
+        });
+    </script>
+</body>
+</html>
